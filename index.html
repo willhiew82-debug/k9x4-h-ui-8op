@@ -539,5 +539,10 @@
   closeBtn.addEventListener('click', closeModal);
   backdrop.addEventListener('click', closeModal);
 </script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
 </body>
 </html>
