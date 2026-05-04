@@ -1,6 +1,6 @@
 {
   "name": "My App",
-  "short_name": "App",
+  "short_name": "Costco",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",
