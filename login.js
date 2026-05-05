@@ -116,6 +116,7 @@
   const _grant = async () => {
     const shell = _d.getElementById('loginShell');
     const app = _d.getElementById('app');
+    _d.body.classList.add('app-active');
     if (app) {
       app.hidden = false;
       app.style.display = 'block';

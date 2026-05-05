@@ -37,6 +37,18 @@
       padding: max(22px, env(safe-area-inset-top)) 18px max(22px, env(safe-area-inset-bottom));
     }
 
+    body.app-active {
+      display: block;
+      place-items: initial;
+      padding: 0;
+      background: #e8e8ed;
+    }
+
+    body.app-active #app {
+      width: 100%;
+      min-height: 100vh;
+    }
+
     .login-shell {
       width: min(100%, 420px);
       color: var(--ink);
