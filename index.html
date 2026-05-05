@@ -159,6 +159,110 @@
     }
   </style>
   <script src="login.js" defer></script>
+  <script>
+    (() => {
+      'use strict';
+
+      if (!('serviceWorker' in navigator)) return;
+
+      const VERSION_KEY = 'costco.sw.version';
+      const hadController = Boolean(navigator.serviceWorker.controller);
+      let refreshing = false;
+
+      const reloadForUpdate = version => {
+        if (refreshing) return;
+        refreshing = true;
+
+        try {
+          const key = `costco.sw.reload.${version || 'current'}`;
+          if (sessionStorage.getItem(key)) return;
+          sessionStorage.setItem(key, '1');
+        } catch (_) {
+          // Storage can be unavailable in strict browser modes.
+        }
+
+        window.location.reload();
+      };
+
+      const rememberVersion = version => {
+        if (!version) return;
+
+        let previous = null;
+        try {
+          previous = localStorage.getItem(VERSION_KEY);
+          localStorage.setItem(VERSION_KEY, version);
+        } catch (_) {
+          // Version storage is a convenience, not a dependency.
+        }
+
+        if (previous && previous !== version && navigator.serviceWorker.controller) {
+          reloadForUpdate(version);
+        }
+      };
+
+      const activateNow = worker => {
+        if (worker) worker.postMessage({ type: 'SKIP_WAITING' });
+      };
+
+      const requestWorkerVersion = worker => new Promise(resolve => {
+        if (!worker) {
+          resolve(null);
+          return;
+        }
+
+        const channel = new MessageChannel();
+        const timeout = window.setTimeout(() => resolve(null), 1200);
+
+        channel.port1.onmessage = event => {
+          window.clearTimeout(timeout);
+          resolve(event.data && event.data.version);
+        };
+
+        worker.postMessage({ type: 'GET_VERSION' }, [channel.port2]);
+      });
+
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (hadController) reloadForUpdate('controller');
+      });
+
+      navigator.serviceWorker.addEventListener('message', event => {
+        if (!event.data) return;
+        if (event.data.type === 'SW_ACTIVATED') rememberVersion(event.data.version);
+      });
+
+      window.addEventListener('load', async () => {
+        try {
+          const registration = await navigator.serviceWorker.register('sw.js', {
+            updateViaCache: 'none'
+          });
+
+          activateNow(registration.waiting);
+
+          registration.addEventListener('updatefound', () => {
+            const worker = registration.installing;
+            if (!worker) return;
+
+            worker.addEventListener('statechange', () => {
+              if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                activateNow(worker);
+              }
+            });
+          });
+
+          rememberVersion(await requestWorkerVersion(registration.active));
+          await registration.update();
+
+          const checkForUpdates = () => registration.update().catch(() => {});
+          window.setInterval(checkForUpdates, 60 * 60 * 1000);
+          document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) checkForUpdates();
+          });
+        } catch (_) {
+          // The app remains usable without service worker support.
+        }
+      });
+    })();
+  </script>
 </head>
 <body>
   <noscript>JavaScript is required to unlock this app.</noscript>
